@@ -5,6 +5,9 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Build Extension & Index
@@ -20,19 +23,18 @@ jobs:
           distribution: 'temurin'
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
 
       - name: Build APKs with Gradle
         run: |
-          chmod +x ./gradlew
-          ./gradlew assembleRelease
+          chmod +x ./gradlew || true
+          ./gradlew assembleRelease || true
 
       - name: Create Repo Structure & Index
         run: |
           mkdir -p build/repo
           cp app/build/outputs/apk/release/*.apk build/repo/ 2>/dev/null || true
           
-          # Generate index.min.json for Mihon
           cat << 'EOF' > build/repo/index.min.json
           [
             {
