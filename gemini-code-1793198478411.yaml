@@ -1,0 +1,63 @@
+name: Build and Deploy Mihon Extension Repo
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Extension & Index
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Build APKs with Gradle
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleRelease
+
+      - name: Create Repo Structure & Index
+        run: |
+          mkdir -p build/repo
+          cp app/build/outputs/apk/release/*.apk build/repo/ 2>/dev/null || true
+          
+          # Generate index.min.json for Mihon
+          cat << 'EOF' > build/repo/index.min.json
+          [
+            {
+              "name": "Comic Republic",
+              "pkg": "eu.kanade.tachiyomi.extension.en.comicrepublic",
+              "apk": "app-release.apk",
+              "lang": "en",
+              "code": 1,
+              "version": "1.0.0",
+              "nsfw": 0,
+              "hasReadme": 0,
+              "sources": [
+                {
+                  "name": "Comic Republic",
+                  "lang": "en",
+                  "id": "7820198421092834710",
+                  "baseUrl": "https://www.thecomicrepublic.com"
+                }
+              ]
+            }
+          ]
+          EOF
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./build/repo
